@@ -1,73 +1,149 @@
-# React + TypeScript + Vite
+# BudgetApp Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+BudgetApp Frontend; kullanicinin butce limiti belirlemesini, harcama kaydi olusturmasini, belirli tarih araliklarinda toplam harcamasini takip etmesini ve backend tarafindan uretilen butce uyarilarini gormesini saglayan bir React uygulamasidir.
 
-Currently, two official plugins are available:
+Uygulama, JWT tabanli kimlik dogrulama ile calisir ve token yenileme (refresh token) mekanizmasini otomatik olarak yonetir.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Ozellikler
 
-## React Compiler
+- Kimlik dogrulama: kayit olma, giris yapma ve cikis
+- Token yonetimi: access/refresh token localStorage'da saklanir
+- Otomatik token yenileme: 401 durumunda `/api/v1/auth/refresh` ile tek seferlik yenileme ve istegi tekrar deneme
+- Dashboard:
+  - kullanici bilgisi (`/users/me`)
+  - aktif butce ozeti
+  - tarih araligina gore toplam harcama
+  - son aktif bildirimler
+- Butce yonetimi:
+  - aylik ve yillik butce tanimlama/guncelleme
+  - aktif butceyi cekme
+- Harcama yonetimi:
+  - harcama ekleme
+  - tarih araligina gore harcama listeleme
+  - tarih araligina gore toplam harcama hesaplama
+- Bildirim yonetimi:
+  - sag drawer icinde aktif bildirimleri gosterme
+  - bildirimleri "okundu" olarak isaretleme
+  - 30 saniyede bir polling ile bildirimleri yenileme
+  - kritik/butce asimi durumlarinda toast ve dikkat cekici app bar vurgusu
+- Tema yonetimi: light/dark mod gecisi
+- Form dogrulama: `react-hook-form` + `zod`
+- Geri bildirim: `sweetalert2` ile modal ve toast mesajlari
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Kullanilan Teknolojiler
 
-## Expanding the ESLint configuration
+- React 19 + TypeScript
+- Vite
+- Material UI (MUI)
+- Redux Toolkit + React Redux
+- React Router
+- React Hook Form + Zod
+- SweetAlert2
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Mimari Ozet
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+Proje feature tabanli bir yapi izler:
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- `src/features/auth`: giris/kayit akisi
+- `src/features/user`: kullanici bilgisi (`me`)
+- `src/features/budget`: butce kaydetme ve aktif butce
+- `src/features/expense`: harcama ekleme/listeleme/toplam
+- `src/features/alert`: bildirim listeleme ve okundu isaretleme
+- `src/services/httpClient.ts`: tum HTTP istekleri, hata ayiklama ve token refresh yonetimi
+- `src/store`: Redux store ve typed hook'lar
+- `src/shared/layout`: uygulama kabuklari (`AuthShell`, `AppShell`)
+- `src/router`: route tanimlari ve korumali route yapisi
+- `src/utils`: tarih, etiket, tema, localStorage, sweetalert yardimcilari
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Route Yapisi
+
+Genel route davranisi:
+
+- `/login` ve `/register`: herkese acik
+- `/dashboard`, `/budget`, `/expenses`: token gerektiren korumali sayfalar
+- `/`: otomatik olarak `/dashboard` yonlendirmesi
+- `*`: token durumuna gore `/dashboard` veya `/login` fallback
+
+> Not: Bildirimler uygulamada sag drawer uzerinden yonetiliyor. Ayrica `AlertsPage` bileseni mevcut olsa da su an route listesine bagli degil.
+
+## API Entegrasyonu
+
+Frontend, backend endpointlerini `/api/v1` prefix'i ile cagirir.
+
+Kullanilan temel endpointler:
+
+- Auth
+  - `POST /api/v1/auth/register`
+  - `POST /api/v1/auth/login`
+  - `POST /api/v1/auth/refresh`
+- User
+  - `GET /api/v1/users/me`
+- Budget
+  - `POST /api/v1/budgets`
+  - `GET /api/v1/budgets/active?periodType=...&year=...&month=...`
+- Expense
+  - `POST /api/v1/expenses`
+  - `GET /api/v1/expenses?start=YYYY-MM-DD&end=YYYY-MM-DD`
+  - `GET /api/v1/expenses/total?start=YYYY-MM-DD&end=YYYY-MM-DD`
+- Alert
+  - `GET /api/v1/alerts?status=ACTIVE|READ&page=0&size=10`
+  - `PATCH /api/v1/alerts/{id}/read`
+
+## Gereksinimler
+
+- Node.js 20+ (onerilir)
+- npm 10+
+- Bu frontend ile uyumlu calisan bir backend servisi
+
+## Kurulum
+
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Gelistirme Ortami
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Vite gelistirme sunucusu, `/api` isteklerini varsayilan olarak `http://localhost:9090` adresine proxy'ler.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+`vite.config.ts`:
+
+- `/api` -> `http://localhost:9090`
+
+Bu nedenle backend'in lokal ortamda calisiyor olmasi gerekir.
+
+## Komutlar
+
+```bash
+npm run dev      # Gelistirme sunucusu
+npm run build    # TypeScript + production build
+npm run preview  # Build ciktisini lokal sunma
+npm run lint     # ESLint kontrolu
 ```
+
+## Ornek Kullanim Akisi
+
+1. Kullanici `/register` ile hesap olusturur veya `/login` ile giris yapar.
+2. Tokenlar localStorage'a kaydedilir.
+3. Dashboard acilisinda kullanici, aktif butce, toplam harcama ve aktif bildirimler yuklenir.
+4. Harcama ekleme ekranindan yeni kayit girilir.
+5. Butce limiti asimi gibi durumlarda backend bildirim uretir; frontend polling ile bildirimi cekip kullaniciya gosterir.
+
+## Durum Yonetimi
+
+Redux store dilimleri:
+
+- `auth`: token, auth loading/error
+- `user`: kullanici profili
+- `budget`: aktif butce, kaydetme/yukleme durumlari
+- `expense`: harcama listesi, toplam, ekleme durumlari
+- `alert`: sayfalanmis bildirim verisi ve okundu isaretleme durumlari
+
+## Notlar
+
+- Sayisal para alanlari backend ile uyum icin string olarak tasiniyor (BigDecimal hassasiyeti).
+- 401 hatalarinda otomatik refresh denenir; refresh basarisizsa tokenlar temizlenir ve kullanici `/login` sayfasina yonlendirilir.
+- Tema tercihi localStorage'da saklanir.
+
+## Lisans
+
+Bu proje icin lisans bilgisi henuz tanimlanmamis. Gerekirse `LICENSE` dosyasi ekleyebilirsiniz.
